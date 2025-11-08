@@ -1,63 +1,52 @@
 import { useState } from 'react'
 import { useParams } from 'react-router'
+import { useMemo } from 'react'
+import { useGetDashboardQuery } from '@/features/boards/boards.api'
+import {
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+} from '@/features/tasks/tasks.api'
+
 import Column from '@/features/boards/components/Column.tsx'
 import TaskModal from '@/features/tasks/components/TaskModal'
-import type { BoardState } from '@/features/boards/boards.types'
-import type { TaskState } from '@/features/tasks/tasks.types'
-import { TaskStatus, TaskPriority } from '@/features/tasks/tasks.types'
+import type { Task } from '@/features/tasks/tasks.types'
+import { TaskStatus } from '@/features/tasks/tasks.types'
+import type { BoardState } from '@/features/boards/boards.types.ts'
 
 const BoardPage = () => {
   const { boardId } = useParams<{ boardId: string }>()
 
   // Task modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
-  const [editingTask, setEditingTask] = useState<TaskState | null>(null)
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [defaultTaskStatus, setDefaultTaskStatus] = useState<TaskStatus>(
     TaskStatus.TODO
   )
 
   // TODO: Replace with RTK Query
-  // const { data: board, isLoading, error } = useGetBoardQuery(boardId)
-
-  // Mock data for now
-  const [board, setBoard] = useState<BoardState>({
-    id: Number(boardId),
-    title: 'My Project Board',
-    description: 'Project management board',
-    tasks: [
-      {
-        id: '1',
-        title: 'Design new landing page',
-        description: 'Create mockups and prototypes for the new landing page',
-        priority: TaskPriority.HIGH,
-        dueDate: '2025-11-15',
-        status: TaskStatus.TODO,
-      },
-      {
-        id: '2',
-        title: 'Fix login bug',
-        description: 'Users are unable to login with Google OAuth',
-        priority: TaskPriority.HIGH,
-        dueDate: '2025-11-10',
-        status: TaskStatus.IN_PROGRESS,
-      },
-      {
-        id: '3',
-        title: 'Update documentation',
-        description: 'Add API documentation for new endpoints',
-        priority: TaskPriority.LOW,
-        dueDate: '2025-11-20',
-        status: TaskStatus.DONE,
-      },
-    ],
+  const { data, isLoading, error } = useGetDashboardQuery(boardId!, {
+    skip: !boardId,
   })
 
-  // Loading state
-  const isLoading = false
-  const error = null
+  const [createTask] = useCreateTaskMutation()
+  const [updateTask] = useUpdateTaskMutation()
+  const [deleteTask] = useDeleteTaskMutation()
+
+  const board: BoardState | null = useMemo(() => {
+    if (!data) return null
+    return {
+      id: data.dashboard.id,
+      title: data.dashboard.title,
+      description: data.dashboard.description ?? null,
+      tasks: data.tasks,
+    }
+  }, [data])
+
+  const currentBoardId = board?.id ?? boardId!
 
   // Filter tasks by status
-  const getTasksByStatus = (status: TaskStatus): TaskState[] => {
+  const getTasksByStatus = (status: TaskStatus): Task[] => {
     return board?.tasks.filter((task) => task.status === status) || []
   }
 
@@ -69,48 +58,46 @@ const BoardPage = () => {
   }
 
   // Handle edit task
-  const handleEditTask = (task: TaskState) => {
+  const handleEditTask = (task: Task) => {
     setEditingTask(task)
     setIsTaskModalOpen(true)
   }
 
   // Handle delete task
-  const handleDeleteTask = (taskId: string) => {
-    // TODO: Add confirmation dialog
-    // TODO: Replace with RTK Query mutation
-    setBoard((prev) => ({
-      ...prev!,
-      tasks: prev!.tasks.filter((task) => task.id !== taskId),
-    }))
-    console.log('Deleting task:', taskId)
+  const handleDeleteTask = async (taskId: number) => {
+    await deleteTask({ boardId: currentBoardId, id: taskId })
   }
 
   // Handle save task
-  const handleSaveTask = (taskData: Omit<TaskState, 'id'> | TaskState) => {
+  const handleSaveTask = async (taskData: Omit<Task, 'id'> | Task) => {
     if ('id' in taskData) {
-      // Edit existing task
-      // TODO: Replace with RTK Query mutation
-      setBoard((prev) => ({
-        ...prev!,
-        tasks: prev!.tasks.map((task) =>
-          task.id === taskData.id ? (taskData as TaskState) : task
-        ),
-      }))
-      console.log('Updating task:', taskData)
+      await updateTask({
+        boardId: currentBoardId,
+        id: taskData.id,
+        data: {
+          title: taskData.title,
+          description: taskData.description ?? null,
+          priority: taskData.priority,
+          dueDate: taskData.dueDate ?? null,
+          status: taskData.status,
+        },
+      })
     } else {
-      // Create new task
-      // TODO: Replace with RTK Query mutation
-      const newTask: TaskState = {
-        ...taskData,
-        id: Date.now().toString(), // Temporary ID generation
-        status: defaultTaskStatus,
-      }
-      setBoard((prev) => ({
-        ...prev!,
-        tasks: [...prev!.tasks, newTask],
-      }))
-      console.log('Creating task:', newTask)
+      await createTask({
+        boardId: currentBoardId,
+        data: {
+          title: taskData.title,
+          description: taskData.description ?? null,
+          dashboardId: currentBoardId,
+          priority: taskData.priority,
+          dueDate: taskData.dueDate ?? null,
+          status: defaultTaskStatus,
+        },
+      })
     }
+
+    setIsTaskModalOpen(false)
+    setEditingTask(null)
   }
 
   // Loading state

@@ -1,6 +1,4 @@
-// src/pages/board/components/Column.tsx
-
-import type { TaskState } from '@/features/tasks/tasks.types'
+import type { Task } from '@/features/tasks/tasks.types'
 import { TaskStatus } from '@/features/tasks/tasks.types'
 import TaskCard from '@/features/tasks/components/TaskCard'
 import Button from '@/components/ui/Button'
@@ -8,10 +6,10 @@ import Button from '@/components/ui/Button'
 interface ColumnProps {
   title: string
   status: TaskStatus
-  tasks: TaskState[]
+  tasks: Task[]
   onAddTask: (status: TaskStatus) => void
-  onEditTask: (task: TaskState) => void
-  onDeleteTask: (taskId: string) => void
+  onEditTask: (task: Task) => void
+  onDeleteTask: (taskId: number) => void
 }
 
 const Column = ({

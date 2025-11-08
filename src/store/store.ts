@@ -7,10 +7,9 @@ import { baseApi } from '@/features/api/baseApi.ts'
 export const store = configureStore({
   reducer: {
     [boardsApi.reducerPath]: boardsApi.reducer,
-    [baseApi.reducerPath]: baseApi.reducer,
     boards: boardsReducer,
   },
-  middleware: (gDM) => gDM().concat(boardsApi.middleware),
+  middleware: (gDM) => gDM().concat(baseApi.middleware),
 })
 
 export type rootState = ReturnType<typeof store.dispatch>

@@ -1,15 +1,13 @@
-// src/features/tasks/components/TaskCard.tsx
-
 import { TaskPriority, TaskStatus } from '../tasks.types'
-import type { TaskState } from '../tasks.types'
+import type { Task } from '../tasks.types'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
 
 interface TaskCardProps {
-  task: TaskState
-  onEdit: (task: TaskState) => void
-  onDelete: (taskId: string) => void
+  task: Task
+  onEdit: (task: Task) => void
+  onDelete: (taskId: number) => void
 }
 
 const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
@@ -27,18 +25,21 @@ const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
     }
   }
 
-  const isOverdue = (dateString: string): boolean => {
+  const isOverdue = (dateString: string | null): boolean => {
+    if (!dateString) return false
+
     const dueDate = new Date(dateString)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     dueDate.setHours(0, 0, 0, 0)
     return dueDate < today && task.status !== TaskStatus.DONE
   }
-
   const overdue = isOverdue(task.dueDate)
 
   // Format date to readable format
-  const formatDate = (dateString: string): string => {
+  const formatDate = (dateString: string | null): string => {
+    if (!dateString) return 'No due date'
+
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {
       month: 'short',
