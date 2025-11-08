@@ -1,9 +1,9 @@
 import { createSlice } from '@reduxjs/toolkit'
-import type { PayloadAction } from '@reduxjs/toolkit'
+// import type { PayloadAction } from '@reduxjs/toolkit'
 import type { BoardState } from './boards.types.ts'
 
 const initialState: BoardState = {
-  id: null,
+  id: '',
   title: '',
   description: '',
   tasks: [],

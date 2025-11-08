@@ -1,9 +1,10 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { store } from './app/store.ts'
+import { BrowserRouter } from 'react-router'
+import { store } from '@/store/store.ts'
 import { Provider } from 'react-redux'
 import './main.css'
-import App from './app/App.tsx'
+import { AppRoutes } from '@/router/AppRoutes.tsx'
 
 const container = document.getElementById('root')
 
@@ -12,9 +13,11 @@ if (container) {
 
   root.render(
     <StrictMode>
-      <Provider store={store}>
-        <App />
-      </Provider>
+      <BrowserRouter>
+        <Provider store={store}>
+          <AppRoutes />
+        </Provider>
+      </BrowserRouter>
     </StrictMode>
   )
 } else {

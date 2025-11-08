@@ -1,8 +1,8 @@
 import type { TaskState } from '../tasks/tasks.types.ts'
 
 export interface BoardState {
-  id: number | null
+  id: string
   title: string
-  description: string
+  description?: string | null
   tasks: TaskState[]
 }
