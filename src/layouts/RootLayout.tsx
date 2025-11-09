@@ -6,9 +6,14 @@ import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { buildBoardPath } from '@/router/paths'
+import { useCreateDashboardMutation } from '@/features/boards/boards.api'
+import toast from 'react-hot-toast'
 
 const RootLayout = () => {
   const navigate = useNavigate()
+
+  // RTK Query mutations
+  const [createDashboard, { isLoading: isCreating }] = useCreateDashboardMutation()
 
   // State for board ID input
   const [boardId, setBoardId] = useState('')
@@ -33,17 +38,24 @@ const RootLayout = () => {
   }
 
   // Handle create board
-  const handleCreateBoard = () => {
-    if (newBoardName.trim()) {
-      // TODO: Create board via RTK Query
-      console.log('Creating board:', newBoardName)
+  const handleCreateBoard = async () => {
+    if (!newBoardName.trim()) return
+
+    try {
+      const result = await createDashboard({ title: newBoardName.trim() }).unwrap()
 
       // Close modal and reset
       setIsCreateModalOpen(false)
       setNewBoardName('')
 
-      // TODO: Navigate to new board after creation
-      // navigate(buildBoardPath(newBoardId))
+      // Show success message
+      toast.success(`Board "${result.title}" created successfully!`)
+
+      // Navigate to new board
+      navigate(buildBoardPath(result.id))
+    } catch (error) {
+      console.error('Failed to create board:', error)
+      toast.error('Failed to create board. Please try again.')
     }
   }
 
@@ -106,7 +118,7 @@ const RootLayout = () => {
             value={newBoardName}
             onChange={(e) => setNewBoardName(e.target.value)}
             onKeyPress={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && newBoardName.trim() && !isCreating) {
                 handleCreateBoard()
               }
             }}
@@ -124,8 +136,11 @@ const RootLayout = () => {
             >
               Cancel
             </Button>
-            <Button onClick={handleCreateBoard} disabled={!newBoardName.trim()}>
-              Create
+            <Button
+              onClick={handleCreateBoard}
+              disabled={!newBoardName.trim() || isCreating}
+            >
+              {isCreating ? 'Creating...' : 'Create'}
             </Button>
           </div>
         </div>

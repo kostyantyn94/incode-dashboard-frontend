@@ -1,7 +1,11 @@
 import { useState } from 'react'
-import { useParams } from 'react-router'
+import { useParams, useNavigate } from 'react-router'
 import { useMemo } from 'react'
-import { useGetDashboardQuery } from '@/features/boards/boards.api'
+import {
+  useGetDashboardQuery,
+  useUpdateDashboardMutation,
+  useDeleteDashboardMutation,
+} from '@/features/boards/boards.api'
 import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
@@ -10,12 +14,18 @@ import {
 
 import Column from '@/features/boards/components/Column.tsx'
 import TaskModal from '@/features/tasks/components/TaskModal'
+import Modal from '@/components/ui/Modal'
+import Input from '@/components/ui/Input'
+import Button from '@/components/ui/Button'
+import IconButton from '@/components/ui/IconButton'
 import type { Task } from '@/features/tasks/tasks.types'
 import { TaskStatus } from '@/features/tasks/tasks.types'
 import type { BoardState } from '@/features/boards/boards.types.ts'
+import toast from 'react-hot-toast'
 
 const BoardPage = () => {
   const { boardId } = useParams<{ boardId: string }>()
+  const navigate = useNavigate()
 
   // Task modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
@@ -24,7 +34,12 @@ const BoardPage = () => {
     TaskStatus.TODO
   )
 
-  // TODO: Replace with RTK Query
+  // Board modal state
+  const [isEditBoardModalOpen, setIsEditBoardModalOpen] = useState(false)
+  const [editedBoardTitle, setEditedBoardTitle] = useState('')
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+
+  // RTK Query
   const { data, isLoading, error } = useGetDashboardQuery(boardId!, {
     skip: !boardId,
   })
@@ -32,6 +47,8 @@ const BoardPage = () => {
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
+  const [updateDashboard, { isLoading: isUpdating }] = useUpdateDashboardMutation()
+  const [deleteDashboard, { isLoading: isDeleting }] = useDeleteDashboardMutation()
 
   const board: BoardState | null = useMemo(() => {
     if (!data) return null
@@ -100,6 +117,46 @@ const BoardPage = () => {
     setEditingTask(null)
   }
 
+  // Handle edit board
+  const handleOpenEditBoard = () => {
+    if (board) {
+      setEditedBoardTitle(board.title)
+      setIsEditBoardModalOpen(true)
+    }
+  }
+
+  const handleUpdateBoard = async () => {
+    if (!editedBoardTitle.trim()) return
+
+    try {
+      await updateDashboard({
+        id: currentBoardId,
+        data: { title: editedBoardTitle.trim() },
+      }).unwrap()
+
+      toast.success('Board updated successfully!')
+      setIsEditBoardModalOpen(false)
+    } catch (error) {
+      console.error('Failed to update board:', error)
+      toast.error('Failed to update board. Please try again.')
+    }
+  }
+
+  // Handle delete board
+  const handleDeleteBoard = async () => {
+    try {
+      await deleteDashboard(currentBoardId).unwrap()
+
+      toast.success('Board deleted successfully!')
+      setIsDeleteConfirmOpen(false)
+      // Navigate to home page
+      navigate('/')
+    } catch (error) {
+      console.error('Failed to delete board:', error)
+      toast.error('Failed to delete board. Please try again.')
+    }
+  }
+
   // Loading state
   if (isLoading) {
     return (
@@ -161,11 +218,60 @@ const BoardPage = () => {
   return (
     <div className="h-[calc(100vh-120px)]">
       {/* Board Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">{board.title}</h1>
-        {board.description && (
-          <p className="text-gray-600">{board.description}</p>
-        )}
+      <div className="mb-6 flex items-start justify-between">
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">{board.title}</h1>
+          {board.description && (
+            <p className="text-gray-600">{board.description}</p>
+          )}
+        </div>
+        <div className="flex gap-2 ml-4">
+          {/* Edit Board Button */}
+          <IconButton
+            onClick={handleOpenEditBoard}
+            variant="default"
+            size="md"
+            ariaLabel="Edit board"
+            icon={
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            }
+          />
+
+          {/* Delete Board Button */}
+          <IconButton
+            onClick={() => setIsDeleteConfirmOpen(true)}
+            variant="danger"
+            size="md"
+            ariaLabel="Delete board"
+            icon={
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                />
+              </svg>
+            }
+          />
+        </div>
       </div>
 
       {/* Kanban Board */}
@@ -209,6 +315,80 @@ const BoardPage = () => {
         initialTask={editingTask}
         defaultStatus={defaultTaskStatus}
       />
+
+      {/* Edit Board Modal */}
+      <Modal
+        isOpen={isEditBoardModalOpen}
+        onClose={() => {
+          setIsEditBoardModalOpen(false)
+          setEditedBoardTitle('')
+        }}
+        title="Edit Board"
+        size="md"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Board Name"
+            placeholder="Enter board name"
+            value={editedBoardTitle}
+            onChange={(e) => setEditedBoardTitle(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter' && editedBoardTitle.trim() && !isUpdating) {
+                handleUpdateBoard()
+              }
+            }}
+            fullWidth
+            autoFocus
+          />
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={() => {
+                setIsEditBoardModalOpen(false)
+                setEditedBoardTitle('')
+              }}
+              variant="secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleUpdateBoard}
+              disabled={!editedBoardTitle.trim() || isUpdating}
+            >
+              {isUpdating ? 'Saving...' : 'Save'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        title="Delete Board"
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-gray-700">
+            Are you sure you want to delete the board{' '}
+            <strong>"{board?.title}"</strong>? This action cannot be undone and
+            will permanently delete all tasks in this board.
+          </p>
+
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              variant="secondary"
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleDeleteBoard} variant="danger" disabled={isDeleting}>
+              {isDeleting ? 'Deleting...' : 'Delete Board'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
