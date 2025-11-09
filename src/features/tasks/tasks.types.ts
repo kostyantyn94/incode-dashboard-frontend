@@ -13,14 +13,14 @@ export interface Task {
 
 export enum TaskStatus {
   TODO = 'TODO',
-  IN_PROGRESS = 'In progress',
-  DONE = 'Done',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
 }
 
 export enum TaskPriority {
-  LOW = 'Low',
-  MEDIUM = 'Medium',
-  HIGH = 'High',
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
 }
 
 export interface CreateTaskDto {

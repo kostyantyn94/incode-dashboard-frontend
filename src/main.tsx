@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter } from 'react-router'
 import { store } from '@/store/store.ts'
 import { Provider } from 'react-redux'
+import { Toaster } from 'react-hot-toast'
 import './main.css'
 import { AppRoutes } from '@/router/AppRoutes.tsx'
 
@@ -16,6 +17,7 @@ if (container) {
       <BrowserRouter>
         <Provider store={store}>
           <AppRoutes />
+          <Toaster position="bottom-right" />
         </Provider>
       </BrowserRouter>
     </StrictMode>

@@ -2,6 +2,8 @@ import type { Task } from '@/features/tasks/tasks.types'
 import { TaskStatus } from '@/features/tasks/tasks.types'
 import TaskCard from '@/features/tasks/components/TaskCard'
 import Button from '@/components/ui/Button'
+import { useDroppable } from '@dnd-kit/core'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 
 interface ColumnProps {
   title: string
@@ -20,6 +22,12 @@ const Column = ({
   onEditTask,
   onDeleteTask,
 }: ColumnProps) => {
+  const { setNodeRef } = useDroppable({
+    id: status,
+  })
+
+  const taskIds = tasks.map((task) => task.id)
+
   return (
     <div className="flex flex-col h-full bg-gray-100 rounded-lg">
       {/* Column Header */}
@@ -33,21 +41,23 @@ const Column = ({
       </div>
 
       {/* Tasks List */}
-      <div className="flex-1 p-4 space-y-3 overflow-y-auto">
-        {tasks.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
-            No tasks yet
-          </div>
-        ) : (
-          tasks.map((task) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              onEdit={onEditTask}
-              onDelete={onDeleteTask}
-            />
-          ))
-        )}
+      <div ref={setNodeRef} className="flex-1 p-4 space-y-3 overflow-y-auto">
+        <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+          {tasks.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+              No tasks yet
+            </div>
+          ) : (
+            tasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onEdit={onEditTask}
+                onDelete={onDeleteTask}
+              />
+            ))
+          )}
+        </SortableContext>
       </div>
 
       {/* Add Task Button */}

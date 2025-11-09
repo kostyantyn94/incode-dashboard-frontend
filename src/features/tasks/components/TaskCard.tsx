@@ -3,6 +3,8 @@ import type { Task } from '../tasks.types'
 import Card from '@/components/ui/Card'
 import Badge from '@/components/ui/Badge'
 import IconButton from '@/components/ui/IconButton'
+import { useSortable } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 interface TaskCardProps {
   task: Task
@@ -11,6 +13,24 @@ interface TaskCardProps {
 }
 
 const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+    isSorting,
+  } = useSortable({
+    id: task.id,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isSorting ? transition : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
   // Map priority to badge variant
   const getPriorityVariant = (
     priority: TaskPriority
@@ -49,12 +69,29 @@ const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
   }
 
   return (
-    <Card hoverable className="group">
-      {/* Header with title and actions */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="font-semibold text-gray-800 text-base leading-tight flex-1">
-          {task.title}
-        </h3>
+    <div ref={setNodeRef} style={style} {...attributes}>
+      <Card hoverable className="group">
+        {/* Header with title and actions */}
+        <div className="flex items-start justify-between gap-2 mb-2">
+          {/* Drag handle */}
+          <div
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing mr-2 mt-1 flex-shrink-0 hover:text-gray-600 transition-colors"
+            title="Drag to reorder"
+            style={{ touchAction: 'none' }}
+          >
+            <svg
+              className="w-4 h-4 text-gray-400 hover:text-gray-600"
+              fill="currentColor"
+              viewBox="0 0 16 16"
+            >
+              <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+            </svg>
+          </div>
+
+          <h3 className="font-semibold text-gray-800 text-base leading-tight flex-1">
+            {task.title}
+          </h3>
 
         {/* Action buttons - visible on hover */}
         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -140,10 +177,11 @@ const TaskCard = ({ task, onEdit, onDelete }: TaskCardProps) => {
 
         {/* Priority badge */}
         <Badge variant={getPriorityVariant(task.priority)} size="sm">
-          {task.priority}
+          {task.priority.charAt(0) + task.priority.slice(1).toLowerCase()}
         </Badge>
       </div>
-    </Card>
+      </Card>
+    </div>
   )
 }
 

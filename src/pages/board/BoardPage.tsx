@@ -10,10 +10,12 @@ import {
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
+  useReorderTaskMutation,
 } from '@/features/tasks/tasks.api'
 
 import Column from '@/features/boards/components/Column.tsx'
 import TaskModal from '@/features/tasks/components/TaskModal'
+import TaskCard from '@/features/tasks/components/TaskCard'
 import Modal from '@/components/ui/Modal'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
@@ -22,6 +24,15 @@ import type { Task } from '@/features/tasks/tasks.types'
 import { TaskStatus } from '@/features/tasks/tasks.types'
 import type { BoardState } from '@/features/boards/boards.types.ts'
 import toast from 'react-hot-toast'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCorners,
+} from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
 
 const BoardPage = () => {
   const { boardId } = useParams<{ boardId: string }>()
@@ -47,8 +58,21 @@ const BoardPage = () => {
   const [createTask] = useCreateTaskMutation()
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
+  const [reorderTask] = useReorderTaskMutation()
   const [updateDashboard, { isLoading: isUpdating }] = useUpdateDashboardMutation()
   const [deleteDashboard, { isLoading: isDeleting }] = useDeleteDashboardMutation()
+
+  // Drag and drop state
+  const [activeTask, setActiveTask] = useState<Task | null>(null)
+
+  // Configure drag sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 3, // Reduced to 3px for more responsive dragging
+      },
+    })
+  )
 
   const board: BoardState | null = useMemo(() => {
     if (!data) return null
@@ -62,9 +86,13 @@ const BoardPage = () => {
 
   const currentBoardId = board?.id ?? boardId!
 
-  // Filter tasks by status
+  // Filter tasks by status and sort by position
   const getTasksByStatus = (status: TaskStatus): Task[] => {
-    return board?.tasks.filter((task) => task.status === status) || []
+    return (
+      board?.tasks
+        .filter((task) => task.status === status)
+        .sort((a, b) => a.position - b.position) || []
+    )
   }
 
   // Handle add task
@@ -157,6 +185,106 @@ const BoardPage = () => {
     }
   }
 
+  // Handle drag start
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const task = board?.tasks.find((t) => t.id === active.id)
+    if (task) {
+      setActiveTask(task)
+    }
+  }
+
+  // Handle drag over (for better visual feedback during drag)
+  const handleDragOver = (event: DragOverEvent) => {
+    // Provides smooth collision detection during drag
+  }
+
+  // Handle drag end
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveTask(null)
+
+    if (!over || !board) return
+
+    const activeTaskId = active.id as number
+    const activeTask = board.tasks.find((t) => t.id === activeTaskId)
+    if (!activeTask) return
+
+    // Determine the target status (column)
+    let targetStatus: TaskStatus = activeTask.status
+
+    // Check if dropped over a column (TaskStatus)
+    if (Object.values(TaskStatus).includes(over.id as TaskStatus)) {
+      targetStatus = over.id as TaskStatus
+    } else {
+      // Dropped over another task, find that task's status
+      const overTask = board.tasks.find((t) => t.id === over.id)
+      if (overTask) {
+        targetStatus = overTask.status
+      }
+    }
+
+    // Get tasks in the target column
+    const targetColumnTasks = board.tasks
+      .filter((t) => t.status === targetStatus)
+      .sort((a, b) => a.position - b.position)
+
+    // Find the position of the active task and the task it's dropped over
+    const activeIndex = targetColumnTasks.findIndex((t) => t.id === activeTaskId)
+    const overIndex = targetColumnTasks.findIndex((t) => t.id === over.id)
+
+    // Determine prevId and nextId
+    let prevId: number | null = null
+    let nextId: number | null = null
+
+    if (over.id === targetStatus) {
+      // Dropped in empty column or at the end
+      if (targetColumnTasks.length > 0) {
+        prevId = targetColumnTasks[targetColumnTasks.length - 1].id
+      }
+    } else if (activeIndex === -1) {
+      // Moving to a different column
+      if (overIndex === 0) {
+        nextId = targetColumnTasks[0].id
+      } else if (overIndex > 0) {
+        prevId = targetColumnTasks[overIndex - 1].id
+        nextId = targetColumnTasks[overIndex].id
+      }
+    } else {
+      // Reordering within the same column
+      if (activeIndex === overIndex) return // No change
+
+      if (activeIndex < overIndex) {
+        // Moving down
+        prevId = targetColumnTasks[overIndex].id
+        if (overIndex + 1 < targetColumnTasks.length) {
+          nextId = targetColumnTasks[overIndex + 1].id
+        }
+      } else {
+        // Moving up
+        if (overIndex > 0) {
+          prevId = targetColumnTasks[overIndex - 1].id
+        }
+        nextId = targetColumnTasks[overIndex].id
+      }
+    }
+
+    try {
+      await reorderTask({
+        boardId: currentBoardId,
+        data: {
+          taskId: activeTaskId,
+          prevId: prevId ?? undefined,
+          nextId: nextId ?? undefined,
+          targetStatus,
+        },
+      }).unwrap()
+    } catch (error) {
+      console.error('Failed to reorder task:', error)
+      toast.error('Failed to move task. Please try again.')
+    }
+  }
+
   // Loading state
   if (isLoading) {
     return (
@@ -216,93 +344,100 @@ const BoardPage = () => {
   }
 
   return (
-    <div className="h-[calc(100vh-120px)]">
-      {/* Board Header */}
-      <div className="mb-6 flex items-start justify-between">
-        <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">{board.title}</h1>
-          {board.description && (
-            <p className="text-gray-600">{board.description}</p>
-          )}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
+    >
+      <div className="h-[calc(100vh-120px)]">
+        {/* Board Header */}
+        <div className="mb-6 flex items-start justify-between">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">{board.title}</h1>
+            {board.description && (
+              <p className="text-gray-600">{board.description}</p>
+            )}
+          </div>
+          <div className="flex gap-2 ml-4">
+            {/* Edit Board Button */}
+            <IconButton
+              onClick={handleOpenEditBoard}
+              variant="default"
+              size="md"
+              ariaLabel="Edit board"
+              icon={
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                  />
+                </svg>
+              }
+            />
+
+            {/* Delete Board Button */}
+            <IconButton
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              variant="danger"
+              size="md"
+              ariaLabel="Delete board"
+              icon={
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              }
+            />
+          </div>
         </div>
-        <div className="flex gap-2 ml-4">
-          {/* Edit Board Button */}
-          <IconButton
-            onClick={handleOpenEditBoard}
-            variant="default"
-            size="md"
-            ariaLabel="Edit board"
-            icon={
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-            }
+
+        {/* Kanban Board */}
+        <div className="grid grid-cols-3 gap-6 h-[calc(100%-120px)]">
+          <Column
+            title="To Do"
+            status={TaskStatus.TODO}
+            tasks={getTasksByStatus(TaskStatus.TODO)}
+            onAddTask={handleAddTask}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
           />
 
-          {/* Delete Board Button */}
-          <IconButton
-            onClick={() => setIsDeleteConfirmOpen(true)}
-            variant="danger"
-            size="md"
-            ariaLabel="Delete board"
-            icon={
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            }
+          <Column
+            title="In Progress"
+            status={TaskStatus.IN_PROGRESS}
+            tasks={getTasksByStatus(TaskStatus.IN_PROGRESS)}
+            onAddTask={handleAddTask}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
+          />
+
+          <Column
+            title="Done"
+            status={TaskStatus.DONE}
+            tasks={getTasksByStatus(TaskStatus.DONE)}
+            onAddTask={handleAddTask}
+            onEditTask={handleEditTask}
+            onDeleteTask={handleDeleteTask}
           />
         </div>
-      </div>
-
-      {/* Kanban Board */}
-      <div className="grid grid-cols-3 gap-6 h-[calc(100%-120px)]">
-        <Column
-          title="To Do"
-          status={TaskStatus.TODO}
-          tasks={getTasksByStatus(TaskStatus.TODO)}
-          onAddTask={handleAddTask}
-          onEditTask={handleEditTask}
-          onDeleteTask={handleDeleteTask}
-        />
-
-        <Column
-          title="In Progress"
-          status={TaskStatus.IN_PROGRESS}
-          tasks={getTasksByStatus(TaskStatus.IN_PROGRESS)}
-          onAddTask={handleAddTask}
-          onEditTask={handleEditTask}
-          onDeleteTask={handleDeleteTask}
-        />
-
-        <Column
-          title="Done"
-          status={TaskStatus.DONE}
-          tasks={getTasksByStatus(TaskStatus.DONE)}
-          onAddTask={handleAddTask}
-          onEditTask={handleEditTask}
-          onDeleteTask={handleDeleteTask}
-        />
-      </div>
 
       {/* Task Modal */}
       <TaskModal
@@ -389,7 +524,21 @@ const BoardPage = () => {
           </div>
         </div>
       </Modal>
-    </div>
+      </div>
+
+      {/* Drag Overlay */}
+      <DragOverlay>
+        {activeTask ? (
+          <div className="rotate-3 opacity-90">
+            <TaskCard
+              task={activeTask}
+              onEdit={() => {}}
+              onDelete={() => {}}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
   )
 }
 
