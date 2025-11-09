@@ -206,7 +206,7 @@ const BoardPage = () => {
   }
 
   // Handle drag over (for better visual feedback during drag)
-  const handleDragOver = (event: DragOverEvent) => {
+  const handleDragOver = (_event: DragOverEvent) => {
     // Provides smooth collision detection during drag
   }
 
