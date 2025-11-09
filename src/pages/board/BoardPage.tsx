@@ -56,8 +56,7 @@ const BoardPage = () => {
   const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
   const [updateTask, { isLoading: isUpdatingTask }] =
     useUpdateTaskMutation()
-  const [deleteTask, { isLoading: isDeletingTask }] =
-    useDeleteTaskMutation()
+  const [deleteTask] = useDeleteTaskMutation()
   const [reorderTask] = useReorderTaskMutation()
   const [updateDashboard, { isLoading: isUpdatingBoard }] =
     useUpdateDashboardMutation()
