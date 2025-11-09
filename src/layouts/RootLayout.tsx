@@ -13,7 +13,8 @@ const RootLayout = () => {
   const navigate = useNavigate()
 
   // RTK Query mutations
-  const [createDashboard, { isLoading: isCreating }] = useCreateDashboardMutation()
+  const [createDashboard, { isLoading: isCreating }] =
+    useCreateDashboardMutation()
 
   // State for board ID input
   const [boardId, setBoardId] = useState('')
@@ -42,7 +43,9 @@ const RootLayout = () => {
     if (!newBoardName.trim()) return
 
     try {
-      const result = await createDashboard({ title: newBoardName.trim() }).unwrap()
+      const result = await createDashboard({
+        title: newBoardName.trim(),
+      }).unwrap()
 
       // Close modal and reset
       setIsCreateModalOpen(false)

@@ -9,7 +9,9 @@ import Card from '@/components/ui/Card'
 
 const HomePage = () => {
   const navigate = useNavigate()
-  const [recentDashboards, setRecentDashboards] = useState<RecentDashboard[]>([])
+  const [recentDashboards, setRecentDashboards] = useState<RecentDashboard[]>(
+    []
+  )
 
   // Load recent dashboards from localStorage
   useEffect(() => {

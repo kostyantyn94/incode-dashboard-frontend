@@ -60,8 +60,10 @@ const BoardPage = () => {
   const [updateTask] = useUpdateTaskMutation()
   const [deleteTask] = useDeleteTaskMutation()
   const [reorderTask] = useReorderTaskMutation()
-  const [updateDashboard, { isLoading: isUpdating }] = useUpdateDashboardMutation()
-  const [deleteDashboard, { isLoading: isDeleting }] = useDeleteDashboardMutation()
+  const [updateDashboard, { isLoading: isUpdating }] =
+    useUpdateDashboardMutation()
+  const [deleteDashboard, { isLoading: isDeleting }] =
+    useDeleteDashboardMutation()
 
   // Drag and drop state
   const [activeTask, setActiveTask] = useState<Task | null>(null)
@@ -241,7 +243,9 @@ const BoardPage = () => {
       .sort((a, b) => a.position - b.position)
 
     // Find the position of the active task and the task it's dropped over
-    const activeIndex = targetColumnTasks.findIndex((t) => t.id === activeTaskId)
+    const activeIndex = targetColumnTasks.findIndex(
+      (t) => t.id === activeTaskId
+    )
     const overIndex = targetColumnTasks.findIndex((t) => t.id === over.id)
 
     // Determine prevId and nextId
@@ -366,7 +370,9 @@ const BoardPage = () => {
         {/* Board Header */}
         <div className="mb-6 flex items-start justify-between">
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">{board.title}</h1>
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">
+              {board.title}
+            </h1>
             {board.description && (
               <p className="text-gray-600">{board.description}</p>
             )}
@@ -450,102 +456,106 @@ const BoardPage = () => {
           />
         </div>
 
-      {/* Task Modal */}
-      <TaskModal
-        isOpen={isTaskModalOpen}
-        onClose={() => {
-          setIsTaskModalOpen(false)
-          setEditingTask(null)
-        }}
-        onSave={handleSaveTask}
-        initialTask={editingTask}
-        defaultStatus={defaultTaskStatus}
-      />
+        {/* Task Modal */}
+        <TaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false)
+            setEditingTask(null)
+          }}
+          onSave={handleSaveTask}
+          initialTask={editingTask}
+          defaultStatus={defaultTaskStatus}
+        />
 
-      {/* Edit Board Modal */}
-      <Modal
-        isOpen={isEditBoardModalOpen}
-        onClose={() => {
-          setIsEditBoardModalOpen(false)
-          setEditedBoardTitle('')
-        }}
-        title="Edit Board"
-        size="md"
-      >
-        <div className="space-y-4">
-          <Input
-            label="Board Name"
-            placeholder="Enter board name"
-            value={editedBoardTitle}
-            onChange={(e) => setEditedBoardTitle(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && editedBoardTitle.trim() && !isUpdating) {
-                handleUpdateBoard()
-              }
-            }}
-            fullWidth
-            autoFocus
-          />
-
-          <div className="flex gap-2 justify-end">
-            <Button
-              onClick={() => {
-                setIsEditBoardModalOpen(false)
-                setEditedBoardTitle('')
+        {/* Edit Board Modal */}
+        <Modal
+          isOpen={isEditBoardModalOpen}
+          onClose={() => {
+            setIsEditBoardModalOpen(false)
+            setEditedBoardTitle('')
+          }}
+          title="Edit Board"
+          size="md"
+        >
+          <div className="space-y-4">
+            <Input
+              label="Board Name"
+              placeholder="Enter board name"
+              value={editedBoardTitle}
+              onChange={(e) => setEditedBoardTitle(e.target.value)}
+              onKeyPress={(e) => {
+                if (
+                  e.key === 'Enter' &&
+                  editedBoardTitle.trim() &&
+                  !isUpdating
+                ) {
+                  handleUpdateBoard()
+                }
               }}
-              variant="secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleUpdateBoard}
-              disabled={!editedBoardTitle.trim() || isUpdating}
-            >
-              {isUpdating ? 'Saving...' : 'Save'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+              fullWidth
+              autoFocus
+            />
 
-      {/* Delete Confirmation Modal */}
-      <Modal
-        isOpen={isDeleteConfirmOpen}
-        onClose={() => setIsDeleteConfirmOpen(false)}
-        title="Delete Board"
-        size="md"
-      >
-        <div className="space-y-4">
-          <p className="text-gray-700">
-            Are you sure you want to delete the board{' '}
-            <strong>"{board?.title}"</strong>? This action cannot be undone and
-            will permanently delete all tasks in this board.
-          </p>
-
-          <div className="flex gap-2 justify-end">
-            <Button
-              onClick={() => setIsDeleteConfirmOpen(false)}
-              variant="secondary"
-              disabled={isDeleting}
-            >
-              Cancel
-            </Button>
-            <Button onClick={handleDeleteBoard} variant="danger" disabled={isDeleting}>
-              {isDeleting ? 'Deleting...' : 'Delete Board'}
-            </Button>
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={() => {
+                  setIsEditBoardModalOpen(false)
+                  setEditedBoardTitle('')
+                }}
+                variant="secondary"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleUpdateBoard}
+                disabled={!editedBoardTitle.trim() || isUpdating}
+              >
+                {isUpdating ? 'Saving...' : 'Save'}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          isOpen={isDeleteConfirmOpen}
+          onClose={() => setIsDeleteConfirmOpen(false)}
+          title="Delete Board"
+          size="md"
+        >
+          <div className="space-y-4">
+            <p className="text-gray-700">
+              Are you sure you want to delete the board{' '}
+              <strong>"{board?.title}"</strong>? This action cannot be undone
+              and will permanently delete all tasks in this board.
+            </p>
+
+            <div className="flex gap-2 justify-end">
+              <Button
+                onClick={() => setIsDeleteConfirmOpen(false)}
+                variant="secondary"
+                disabled={isDeleting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDeleteBoard}
+                variant="danger"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Board'}
+              </Button>
+            </div>
+          </div>
+        </Modal>
       </div>
 
       {/* Drag Overlay */}
       <DragOverlay>
         {activeTask ? (
           <div className="rotate-3 opacity-90">
-            <TaskCard
-              task={activeTask}
-              onEdit={() => {}}
-              onDelete={() => {}}
-            />
+            <TaskCard task={activeTask} onEdit={() => {}} onDelete={() => {}} />
           </div>
         ) : null}
       </DragOverlay>
