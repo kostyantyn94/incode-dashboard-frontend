@@ -6,15 +6,14 @@ import Input from '@/components/ui/Input'
 import Textarea from '@/components/ui/TextArea'
 import Select from '@/components/ui/Select'
 import Button from '@/components/ui/Button'
-
-import type { TaskState } from '../tasks.types'
+import type { Task } from '../tasks.types'
 import { TaskPriority, TaskStatus } from '../tasks.types'
 
 interface TaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (task: Omit<TaskState, 'id'> | TaskState) => void
-  initialTask?: TaskState | null
+  onSave: (task: Omit<Task, 'id'> | Task) => void
+  initialTask?: Task | null
   defaultStatus?: TaskStatus
 }
 
@@ -56,9 +55,9 @@ const TaskModal = ({
   useEffect(() => {
     if (initialTask) {
       setTitle(initialTask.title)
-      setDescription(initialTask.description)
+      setDescription(initialTask.description ?? '')
       setPriority(initialTask.priority)
-      setDueDate(initialTask.dueDate)
+      setDueDate(initialTask.dueDate ?? '')
       setStatus(initialTask.status)
     } else {
       // Reset form for create mode
@@ -77,10 +76,6 @@ const TaskModal = ({
 
     if (!title.trim()) {
       newErrors.title = 'Title is required'
-    }
-
-    if (!dueDate) {
-      newErrors.dueDate = 'Due date is required'
     }
 
     setErrors(newErrors)
@@ -102,7 +97,7 @@ const TaskModal = ({
       status,
     }
 
-    onSave(taskData as TaskState)
+    onSave(taskData as Task)
     handleClose()
   }
 
@@ -166,7 +161,6 @@ const TaskModal = ({
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            error={errors.dueDate}
             fullWidth
           />
         </div>

@@ -1,3 +1,11 @@
+import type {
+  CreateTaskDto,
+  ReorderTaskDto,
+  Task,
+  UpdateTaskDto,
+} from '@/features/tasks/tasks.types.ts'
+import { baseApi } from '@/features/api/baseApi.ts'
+
 const base = '/api/v1/task'
 
 export const tasksApi = baseApi.injectEndpoints({
