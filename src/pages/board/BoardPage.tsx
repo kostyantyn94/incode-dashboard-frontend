@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router'
 import { useMemo } from 'react'
 import {
@@ -24,6 +24,7 @@ import type { Task } from '@/features/tasks/tasks.types'
 import { TaskStatus } from '@/features/tasks/tasks.types'
 import type { BoardState } from '@/features/boards/boards.types.ts'
 import toast from 'react-hot-toast'
+import { recentDashboardsUtils } from '@/utils/recentDashboards'
 import {
   DndContext,
   DragOverlay,
@@ -85,6 +86,16 @@ const BoardPage = () => {
   }, [data])
 
   const currentBoardId = board?.id ?? boardId!
+
+  // Track recently visited dashboards
+  useEffect(() => {
+    if (board) {
+      recentDashboardsUtils.addRecent({
+        id: board.id,
+        title: board.title,
+      })
+    }
+  }, [board])
 
   // Filter tasks by status and sort by position
   const getTasksByStatus = (status: TaskStatus): Task[] => {

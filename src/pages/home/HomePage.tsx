@@ -1,9 +1,46 @@
 // src/pages/home/HomePage.tsx
 
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router'
+import { recentDashboardsUtils } from '@/utils/recentDashboards'
+import type { RecentDashboard } from '@/utils/recentDashboards'
+import { buildBoardPath } from '@/router/paths'
+import Card from '@/components/ui/Card'
+
 const HomePage = () => {
+  const navigate = useNavigate()
+  const [recentDashboards, setRecentDashboards] = useState<RecentDashboard[]>([])
+
+  // Load recent dashboards from localStorage
+  useEffect(() => {
+    const recent = recentDashboardsUtils.getRecent()
+    setRecentDashboards(recent)
+  }, [])
+
+  // Navigate to a dashboard
+  const handleDashboardClick = (id: string) => {
+    navigate(buildBoardPath(id))
+  }
+
+  // Format relative time
+  const formatRelativeTime = (dateString: string): string => {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    const diffHours = Math.floor(diffMs / 3600000)
+    const diffDays = Math.floor(diffMs / 86400000)
+
+    if (diffMins < 1) return 'Just now'
+    if (diffMins < 60) return `${diffMins}m ago`
+    if (diffHours < 24) return `${diffHours}h ago`
+    if (diffDays < 7) return `${diffDays}d ago`
+    return date.toLocaleDateString()
+  }
+
   return (
     <div className="flex items-center justify-center h-[calc(100vh-200px)]">
-      <div className="text-center max-w-2xl px-4">
+      <div className="text-center max-w-4xl px-4 w-full">
         {/* Icon */}
         <div className="mb-6">
           <svg
@@ -32,6 +69,49 @@ const HomePage = () => {
           Enter a board ID above to load an existing board, or create a new one
           to get started.
         </p>
+
+        {/* Recent Dashboards */}
+        {recentDashboards.length > 0 && (
+          <div className="mb-12">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+              Recent Dashboards
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {recentDashboards.map((dashboard) => (
+                <Card
+                  key={dashboard.id}
+                  hoverable
+                  onClick={() => handleDashboardClick(dashboard.id)}
+                  className="cursor-pointer text-left"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-800 text-base truncate mb-1">
+                        {dashboard.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {formatRelativeTime(dashboard.lastVisited)}
+                      </p>
+                    </div>
+                    <svg
+                      className="w-5 h-5 text-gray-400 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
