@@ -1,30 +1,40 @@
-// src/pages/home/HomePage.tsx
-
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router'
 import { recentDashboardsUtils } from '@/utils/recentDashboards'
 import type { RecentDashboard } from '@/utils/recentDashboards'
 import { buildBoardPath } from '@/router/paths'
 import Card from '@/components/ui/Card'
+import Button from '@/components/ui/Button'
+import IconButton from '@/components/ui/IconButton'
 
 const HomePage = () => {
   const navigate = useNavigate()
   const [recentDashboards, setRecentDashboards] = useState<RecentDashboard[]>(
     []
   )
-
-  // Load recent dashboards from localStorage
   useEffect(() => {
     const recent = recentDashboardsUtils.getRecent()
     setRecentDashboards(recent)
   }, [])
 
-  // Navigate to a dashboard
   const handleDashboardClick = (id: string) => {
     navigate(buildBoardPath(id))
   }
 
-  // Format relative time
+  const handleRemoveDashboard = (
+    e: React.MouseEvent,
+    id: string
+  ) => {
+    e.stopPropagation()
+    recentDashboardsUtils.removeRecent(id)
+    setRecentDashboards(recentDashboardsUtils.getRecent())
+  }
+
+  const handleClearAll = () => {
+    recentDashboardsUtils.clearRecent()
+    setRecentDashboards([])
+  }
+
   const formatRelativeTime = (dateString: string): string => {
     const date = new Date(dateString)
     const now = new Date()
@@ -43,7 +53,6 @@ const HomePage = () => {
   return (
     <div className="flex items-center justify-center h-[calc(100vh-200px)]">
       <div className="text-center max-w-4xl px-4 w-full">
-        {/* Icon */}
         <div className="mb-6">
           <svg
             className="w-24 h-24 text-blue-600 mx-auto"
@@ -60,24 +69,31 @@ const HomePage = () => {
           </svg>
         </div>
 
-        {/* Title */}
         <h1 className="text-4xl font-bold text-gray-800 mb-4">
           Welcome to Task Board
         </h1>
 
-        {/* Description */}
         <p className="text-lg text-gray-600 mb-8">
           Manage your projects efficiently with our intuitive kanban board.
           Enter a board ID above to load an existing board, or create a new one
           to get started.
         </p>
 
-        {/* Recent Dashboards */}
         {recentDashboards.length > 0 && (
           <div className="mb-12">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-              Recent Dashboards
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-semibold text-gray-800">
+                Recent Dashboards
+              </h2>
+              <Button
+                onClick={handleClearAll}
+                variant="ghost"
+                size="sm"
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                Clear All
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {recentDashboards.map((dashboard) => (
                 <Card
@@ -95,19 +111,42 @@ const HomePage = () => {
                         {formatRelativeTime(dashboard.lastVisited)}
                       </p>
                     </div>
-                    <svg
-                      className="w-5 h-5 text-gray-400 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 5l7 7-7 7"
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <IconButton
+                        onClick={(e) => handleRemoveDashboard(e, dashboard.id)}
+                        variant="danger"
+                        size="sm"
+                        ariaLabel="Remove from recent"
+                        icon={
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        }
                       />
-                    </svg>
+                      <svg
+                        className="w-5 h-5 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -115,7 +154,6 @@ const HomePage = () => {
           </div>
         )}
 
-        {/* Features */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <div className="p-6 bg-white rounded-lg border border-gray-200">
             <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">

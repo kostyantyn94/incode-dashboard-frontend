@@ -1,5 +1,3 @@
-// Utility for managing recent dashboards in localStorage
-
 export interface RecentDashboard {
   id: string
   title: string
@@ -10,7 +8,7 @@ const STORAGE_KEY = 'recentDashboards'
 const MAX_RECENT = 5
 
 export const recentDashboardsUtils = {
-  // Get all recent dashboards
+
   getRecent(): RecentDashboard[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -22,15 +20,15 @@ export const recentDashboardsUtils = {
     }
   },
 
-  // Add or update a dashboard in recent list
+
   addRecent(dashboard: { id: string; title: string }): void {
     try {
       const recent = this.getRecent()
 
-      // Remove existing entry if present
+
       const filtered = recent.filter((d) => d.id !== dashboard.id)
 
-      // Add to beginning
+
       const updated: RecentDashboard[] = [
         {
           id: dashboard.id,
@@ -40,7 +38,7 @@ export const recentDashboardsUtils = {
         ...filtered,
       ]
 
-      // Keep only MAX_RECENT items
+
       const trimmed = updated.slice(0, MAX_RECENT)
 
       localStorage.setItem(STORAGE_KEY, JSON.stringify(trimmed))
@@ -49,7 +47,6 @@ export const recentDashboardsUtils = {
     }
   },
 
-  // Remove a dashboard from recent list
   removeRecent(id: string): void {
     try {
       const recent = this.getRecent()

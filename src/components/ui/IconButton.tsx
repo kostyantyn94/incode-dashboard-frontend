@@ -1,5 +1,3 @@
-// src/components/ui/IconButton.tsx
-
 import { forwardRef } from 'react'
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 

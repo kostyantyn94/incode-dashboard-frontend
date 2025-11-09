@@ -1,5 +1,3 @@
-// src/components/ui/Card.tsx
-
 import { forwardRef } from 'react'
 import type { HTMLAttributes, ReactNode } from 'react'
 interface CardProps extends HTMLAttributes<HTMLDivElement> {

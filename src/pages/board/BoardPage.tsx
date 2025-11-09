@@ -39,40 +39,38 @@ const BoardPage = () => {
   const { boardId } = useParams<{ boardId: string }>()
   const navigate = useNavigate()
 
-  // Task modal state
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [defaultTaskStatus, setDefaultTaskStatus] = useState<TaskStatus>(
     TaskStatus.TODO
   )
 
-  // Board modal state
   const [isEditBoardModalOpen, setIsEditBoardModalOpen] = useState(false)
   const [editedBoardTitle, setEditedBoardTitle] = useState('')
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
-  // RTK Query
   const { data, isLoading, error } = useGetDashboardQuery(boardId!, {
     skip: !boardId,
   })
 
-  const [createTask] = useCreateTaskMutation()
-  const [updateTask] = useUpdateTaskMutation()
-  const [deleteTask] = useDeleteTaskMutation()
+  const [createTask, { isLoading: isCreating }] = useCreateTaskMutation()
+  const [updateTask, { isLoading: isUpdatingTask }] =
+    useUpdateTaskMutation()
+  const [deleteTask, { isLoading: isDeletingTask }] =
+    useDeleteTaskMutation()
   const [reorderTask] = useReorderTaskMutation()
-  const [updateDashboard, { isLoading: isUpdating }] =
+  const [updateDashboard, { isLoading: isUpdatingBoard }] =
     useUpdateDashboardMutation()
-  const [deleteDashboard, { isLoading: isDeleting }] =
+  const [deleteDashboard, { isLoading: isDeletingBoard }] =
     useDeleteDashboardMutation()
 
-  // Drag and drop state
   const [activeTask, setActiveTask] = useState<Task | null>(null)
+  const [deletingTaskId, setDeletingTaskId] = useState<number | null>(null)
 
-  // Configure drag sensors
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3, // Reduced to 3px for more responsive dragging
+        distance: 3,
       },
     })
   )
@@ -89,7 +87,6 @@ const BoardPage = () => {
 
   const currentBoardId = board?.id ?? boardId!
 
-  // Track recently visited dashboards
   useEffect(() => {
     if (board) {
       recentDashboardsUtils.addRecent({
@@ -99,7 +96,6 @@ const BoardPage = () => {
     }
   }, [board])
 
-  // Filter tasks by status and sort by position
   const getTasksByStatus = (status: TaskStatus): Task[] => {
     return (
       board?.tasks
@@ -108,57 +104,68 @@ const BoardPage = () => {
     )
   }
 
-  // Handle add task
   const handleAddTask = (status: TaskStatus) => {
     setDefaultTaskStatus(status)
     setEditingTask(null)
     setIsTaskModalOpen(true)
   }
 
-  // Handle edit task
   const handleEditTask = (task: Task) => {
     setEditingTask(task)
     setIsTaskModalOpen(true)
   }
 
-  // Handle delete task
   const handleDeleteTask = async (taskId: number) => {
-    await deleteTask({ boardId: currentBoardId, id: taskId })
-  }
-
-  // Handle save task
-  const handleSaveTask = async (taskData: Omit<Task, 'id'> | Task) => {
-    if ('id' in taskData) {
-      await updateTask({
-        boardId: currentBoardId,
-        id: taskData.id,
-        data: {
-          title: taskData.title,
-          description: taskData.description ?? null,
-          priority: taskData.priority,
-          dueDate: taskData.dueDate ?? null,
-          status: taskData.status,
-        },
-      })
-    } else {
-      await createTask({
-        boardId: currentBoardId,
-        data: {
-          title: taskData.title,
-          description: taskData.description ?? null,
-          dashboardId: currentBoardId,
-          priority: taskData.priority,
-          dueDate: taskData.dueDate ?? null,
-          status: defaultTaskStatus,
-        },
-      })
+    setDeletingTaskId(taskId)
+    try {
+      await deleteTask({ boardId: currentBoardId, id: taskId }).unwrap()
+      toast.success('Task deleted successfully!')
+    } catch (error) {
+      console.error('Failed to delete task:', error)
+      toast.error('Failed to delete task. Please try again.')
+    } finally {
+      setDeletingTaskId(null)
     }
-
-    setIsTaskModalOpen(false)
-    setEditingTask(null)
   }
 
-  // Handle edit board
+  const handleSaveTask = async (taskData: Omit<Task, 'id'> | Task) => {
+    try {
+      if ('id' in taskData) {
+        await updateTask({
+          boardId: currentBoardId,
+          id: taskData.id,
+          data: {
+            title: taskData.title,
+            description: taskData.description ?? null,
+            priority: taskData.priority,
+            dueDate: taskData.dueDate ?? null,
+            status: taskData.status,
+          },
+        }).unwrap()
+        toast.success('Task updated successfully!')
+      } else {
+        await createTask({
+          boardId: currentBoardId,
+          data: {
+            title: taskData.title,
+            description: taskData.description ?? null,
+            dashboardId: currentBoardId,
+            priority: taskData.priority,
+            dueDate: taskData.dueDate ?? null,
+            status: defaultTaskStatus,
+          },
+        }).unwrap()
+        toast.success('Task created successfully!')
+      }
+
+      setIsTaskModalOpen(false)
+      setEditingTask(null)
+    } catch (error) {
+      console.error('Failed to save task:', error)
+      toast.error('Failed to save task. Please try again.')
+    }
+  }
+
   const handleOpenEditBoard = () => {
     if (board) {
       setEditedBoardTitle(board.title)
@@ -183,14 +190,12 @@ const BoardPage = () => {
     }
   }
 
-  // Handle delete board
   const handleDeleteBoard = async () => {
     try {
       await deleteDashboard(currentBoardId).unwrap()
 
       toast.success('Board deleted successfully!')
       setIsDeleteConfirmOpen(false)
-      // Navigate to home page
       navigate('/')
     } catch (error) {
       console.error('Failed to delete board:', error)
@@ -198,7 +203,6 @@ const BoardPage = () => {
     }
   }
 
-  // Handle drag start
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const task = board?.tasks.find((t) => t.id === active.id)
@@ -207,12 +211,10 @@ const BoardPage = () => {
     }
   }
 
-  // Handle drag over (for better visual feedback during drag)
   const handleDragOver = () => {
     // Provides smooth collision detection during drag
   }
 
-  // Handle drag end
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
@@ -222,43 +224,30 @@ const BoardPage = () => {
     const activeTaskId = active.id as number
     const activeTask = board.tasks.find((t) => t.id === activeTaskId)
     if (!activeTask) return
-
-    // Determine the target status (column)
     let targetStatus: TaskStatus = activeTask.status
-
-    // Check if dropped over a column (TaskStatus)
     if (Object.values(TaskStatus).includes(over.id as TaskStatus)) {
       targetStatus = over.id as TaskStatus
     } else {
-      // Dropped over another task, find that task's status
       const overTask = board.tasks.find((t) => t.id === over.id)
       if (overTask) {
         targetStatus = overTask.status
       }
     }
-
-    // Get tasks in the target column
     const targetColumnTasks = board.tasks
       .filter((t) => t.status === targetStatus)
       .sort((a, b) => a.position - b.position)
-
-    // Find the position of the active task and the task it's dropped over
     const activeIndex = targetColumnTasks.findIndex(
       (t) => t.id === activeTaskId
     )
     const overIndex = targetColumnTasks.findIndex((t) => t.id === over.id)
-
-    // Determine prevId and nextId
     let prevId: number | null = null
     let nextId: number | null = null
 
     if (over.id === targetStatus) {
-      // Dropped in empty column or at the end
       if (targetColumnTasks.length > 0) {
         prevId = targetColumnTasks[targetColumnTasks.length - 1].id
       }
     } else if (activeIndex === -1) {
-      // Moving to a different column
       if (overIndex === 0) {
         nextId = targetColumnTasks[0].id
       } else if (overIndex > 0) {
@@ -266,17 +255,14 @@ const BoardPage = () => {
         nextId = targetColumnTasks[overIndex].id
       }
     } else {
-      // Reordering within the same column
       if (activeIndex === overIndex) return // No change
 
       if (activeIndex < overIndex) {
-        // Moving down
         prevId = targetColumnTasks[overIndex].id
         if (overIndex + 1 < targetColumnTasks.length) {
           nextId = targetColumnTasks[overIndex + 1].id
         }
       } else {
-        // Moving up
         if (overIndex > 0) {
           prevId = targetColumnTasks[overIndex - 1].id
         }
@@ -300,7 +286,6 @@ const BoardPage = () => {
     }
   }
 
-  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -312,7 +297,6 @@ const BoardPage = () => {
     )
   }
 
-  // Error state
   if (error) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -342,7 +326,6 @@ const BoardPage = () => {
     )
   }
 
-  // No board found
   if (!board) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-200px)]">
@@ -367,7 +350,6 @@ const BoardPage = () => {
       onDragEnd={handleDragEnd}
     >
       <div className="h-[calc(100vh-120px)]">
-        {/* Board Header */}
         <div className="mb-6 flex items-start justify-between">
           <div className="flex-1">
             <h1 className="text-3xl font-bold text-gray-800 mb-2">
@@ -378,7 +360,6 @@ const BoardPage = () => {
             )}
           </div>
           <div className="flex gap-2 ml-4">
-            {/* Edit Board Button */}
             <IconButton
               onClick={handleOpenEditBoard}
               variant="default"
@@ -401,7 +382,6 @@ const BoardPage = () => {
               }
             />
 
-            {/* Delete Board Button */}
             <IconButton
               onClick={() => setIsDeleteConfirmOpen(true)}
               variant="danger"
@@ -426,7 +406,6 @@ const BoardPage = () => {
           </div>
         </div>
 
-        {/* Kanban Board */}
         <div className="grid grid-cols-3 gap-6 h-[calc(100%-120px)]">
           <Column
             title="To Do"
@@ -435,6 +414,7 @@ const BoardPage = () => {
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
+            deletingTaskId={deletingTaskId}
           />
 
           <Column
@@ -444,6 +424,7 @@ const BoardPage = () => {
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
+            deletingTaskId={deletingTaskId}
           />
 
           <Column
@@ -453,10 +434,10 @@ const BoardPage = () => {
             onAddTask={handleAddTask}
             onEditTask={handleEditTask}
             onDeleteTask={handleDeleteTask}
+            deletingTaskId={deletingTaskId}
           />
         </div>
 
-        {/* Task Modal */}
         <TaskModal
           isOpen={isTaskModalOpen}
           onClose={() => {
@@ -466,9 +447,9 @@ const BoardPage = () => {
           onSave={handleSaveTask}
           initialTask={editingTask}
           defaultStatus={defaultTaskStatus}
+          isLoading={isCreating || isUpdatingTask}
         />
 
-        {/* Edit Board Modal */}
         <Modal
           isOpen={isEditBoardModalOpen}
           onClose={() => {
@@ -484,11 +465,11 @@ const BoardPage = () => {
               placeholder="Enter board name"
               value={editedBoardTitle}
               onChange={(e) => setEditedBoardTitle(e.target.value)}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
                 if (
                   e.key === 'Enter' &&
                   editedBoardTitle.trim() &&
-                  !isUpdating
+                  !isUpdatingBoard
                 ) {
                   handleUpdateBoard()
                 }
@@ -509,15 +490,14 @@ const BoardPage = () => {
               </Button>
               <Button
                 onClick={handleUpdateBoard}
-                disabled={!editedBoardTitle.trim() || isUpdating}
+                disabled={!editedBoardTitle.trim() || isUpdatingBoard}
               >
-                {isUpdating ? 'Saving...' : 'Save'}
+                {isUpdatingBoard ? 'Saving...' : 'Save'}
               </Button>
             </div>
           </div>
         </Modal>
 
-        {/* Delete Confirmation Modal */}
         <Modal
           isOpen={isDeleteConfirmOpen}
           onClose={() => setIsDeleteConfirmOpen(false)}
@@ -535,23 +515,22 @@ const BoardPage = () => {
               <Button
                 onClick={() => setIsDeleteConfirmOpen(false)}
                 variant="secondary"
-                disabled={isDeleting}
+                disabled={isDeletingBoard}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleDeleteBoard}
                 variant="danger"
-                disabled={isDeleting}
+                disabled={isDeletingBoard}
               >
-                {isDeleting ? 'Deleting...' : 'Delete Board'}
+                {isDeletingBoard ? 'Deleting...' : 'Delete Board'}
               </Button>
             </div>
           </div>
         </Modal>
       </div>
 
-      {/* Drag Overlay */}
       <DragOverlay>
         {activeTask ? (
           <div className="rotate-3 opacity-90">

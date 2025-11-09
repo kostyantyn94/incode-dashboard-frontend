@@ -10,12 +10,10 @@ const NotFoundPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
-        {/* 404 Illustration */}
         <div className="mb-8">
           <h1 className="text-9xl font-bold text-gray-200">404</h1>
         </div>
 
-        {/* Icon */}
         <div className="mb-6">
           <svg
             className="w-20 h-20 text-gray-400 mx-auto"
@@ -32,18 +30,15 @@ const NotFoundPage = () => {
           </svg>
         </div>
 
-        {/* Title */}
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
           Page Not Found
         </h2>
 
-        {/* Description */}
         <p className="text-lg text-gray-600 mb-8">
           Oops! The page you're looking for doesn't exist. It might have been
           moved or deleted.
         </p>
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Button onClick={() => navigate(-1)} variant="secondary" size="lg">
             <svg

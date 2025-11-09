@@ -12,6 +12,7 @@ interface ColumnProps {
   onAddTask: (status: TaskStatus) => void
   onEditTask: (task: Task) => void
   onDeleteTask: (taskId: number) => void
+  deletingTaskId?: number | null
 }
 
 const Column = ({
@@ -21,6 +22,7 @@ const Column = ({
   onAddTask,
   onEditTask,
   onDeleteTask,
+  deletingTaskId = null,
 }: ColumnProps) => {
   const { setNodeRef } = useDroppable({
     id: status,
@@ -54,6 +56,7 @@ const Column = ({
                 task={task}
                 onEdit={onEditTask}
                 onDelete={onDeleteTask}
+                isDeleting={deletingTaskId === task.id}
               />
             ))
           )}

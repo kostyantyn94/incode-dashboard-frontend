@@ -1,5 +1,3 @@
-// src/components/ui/Textarea.tsx
-
 import { forwardRef } from 'react'
 import type { TextareaHTMLAttributes } from 'react'
 

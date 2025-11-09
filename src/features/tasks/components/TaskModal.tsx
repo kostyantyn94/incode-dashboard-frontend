@@ -12,9 +12,10 @@ import { TaskPriority, TaskStatus } from '../tasks.types'
 interface TaskModalProps {
   isOpen: boolean
   onClose: () => void
-  onSave: (task: Omit<Task, 'id'> | Task) => void
+  onSave: (task: Omit<Task, 'id'> | Task) => Promise<void>
   initialTask?: Task | null
   defaultStatus?: TaskStatus
+  isLoading?: boolean
 }
 
 const TaskModal = ({
@@ -23,6 +24,7 @@ const TaskModal = ({
   onSave,
   initialTask = null,
   defaultStatus = TaskStatus.TODO,
+  isLoading = false,
 }: TaskModalProps) => {
   // Form state
   const [title, setTitle] = useState('')
@@ -89,7 +91,7 @@ const TaskModal = ({
   }
 
   // Handle save
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!validate()) {
       return
     }
@@ -110,8 +112,7 @@ const TaskModal = ({
       status,
     }
 
-    onSave(taskData as Task)
-    handleClose()
+    await onSave(taskData as Task)
   }
 
   // Handle close
@@ -191,11 +192,17 @@ const TaskModal = ({
 
         {/* Actions */}
         <div className="flex gap-3 justify-end pt-2">
-          <Button onClick={handleClose} variant="secondary">
+          <Button onClick={handleClose} variant="secondary" disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>
-            {isEditMode ? 'Save Changes' : 'Create Task'}
+          <Button onClick={handleSave} disabled={isLoading}>
+            {isLoading
+              ? isEditMode
+                ? 'Saving...'
+                : 'Creating...'
+              : isEditMode
+                ? 'Save Changes'
+                : 'Create Task'}
           </Button>
         </div>
       </div>

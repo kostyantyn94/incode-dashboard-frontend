@@ -1,5 +1,3 @@
-// src/components/ui/Select.tsx
-
 import { forwardRef } from 'react'
 import type { SelectHTMLAttributes } from 'react'
 
