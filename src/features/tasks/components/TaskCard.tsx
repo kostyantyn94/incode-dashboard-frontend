@@ -13,7 +13,12 @@ interface TaskCardProps {
   isDeleting?: boolean
 }
 
-const TaskCard = ({ task, onEdit, onDelete, isDeleting = false }: TaskCardProps) => {
+const TaskCard = ({
+  task,
+  onEdit,
+  onDelete,
+  isDeleting = false,
+}: TaskCardProps) => {
   const {
     attributes,
     listeners,

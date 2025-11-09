@@ -192,7 +192,11 @@ const TaskModal = ({
 
         {/* Actions */}
         <div className="flex gap-3 justify-end pt-2">
-          <Button onClick={handleClose} variant="secondary" disabled={isLoading}>
+          <Button
+            onClick={handleClose}
+            variant="secondary"
+            disabled={isLoading}
+          >
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={isLoading}>

@@ -21,10 +21,7 @@ const HomePage = () => {
     navigate(buildBoardPath(id))
   }
 
-  const handleRemoveDashboard = (
-    e: React.MouseEvent,
-    id: string
-  ) => {
+  const handleRemoveDashboard = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()
     recentDashboardsUtils.removeRecent(id)
     setRecentDashboards(recentDashboardsUtils.getRecent())

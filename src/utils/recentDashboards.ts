@@ -8,7 +8,6 @@ const STORAGE_KEY = 'recentDashboards'
 const MAX_RECENT = 5
 
 export const recentDashboardsUtils = {
-
   getRecent(): RecentDashboard[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEY)
@@ -20,14 +19,11 @@ export const recentDashboardsUtils = {
     }
   },
 
-
   addRecent(dashboard: { id: string; title: string }): void {
     try {
       const recent = this.getRecent()
 
-
       const filtered = recent.filter((d) => d.id !== dashboard.id)
-
 
       const updated: RecentDashboard[] = [
         {
@@ -37,7 +33,6 @@ export const recentDashboardsUtils = {
         },
         ...filtered,
       ]
-
 
       const trimmed = updated.slice(0, MAX_RECENT)
 
