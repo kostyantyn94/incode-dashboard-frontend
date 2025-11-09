@@ -33,7 +33,7 @@ import {
   useSensors,
   closestCorners,
 } from '@dnd-kit/core'
-import type { DragEndEvent, DragStartEvent, DragOverEvent } from '@dnd-kit/core'
+import type { DragEndEvent, DragStartEvent } from '@dnd-kit/core'
 
 const BoardPage = () => {
   const { boardId } = useParams<{ boardId: string }>()
@@ -206,7 +206,7 @@ const BoardPage = () => {
   }
 
   // Handle drag over (for better visual feedback during drag)
-  const handleDragOver = (_event: DragOverEvent) => {
+  const handleDragOver = () => {
     // Provides smooth collision detection during drag
   }
 
