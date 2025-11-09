@@ -1,13 +1,13 @@
 # Build stage
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies (including optional dependencies for Rollup native binaries)
+RUN npm ci --include=optional
 
 # Copy source code
 COPY . .
