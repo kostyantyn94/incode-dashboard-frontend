@@ -3,11 +3,11 @@ FROM node:20-slim AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package.json only (package-lock.json is excluded via .dockerignore)
+COPY package.json ./
 
-# Install dependencies (including optional dependencies for Rollup native binaries)
-RUN npm ci --include=optional
+# Fresh install without lock file - properly handles optional dependencies like Rollup binaries
+RUN npm install && npm cache clean --force
 
 # Copy source code
 COPY . .
