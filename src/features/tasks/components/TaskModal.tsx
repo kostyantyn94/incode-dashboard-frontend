@@ -57,7 +57,13 @@ const TaskModal = ({
       setTitle(initialTask.title)
       setDescription(initialTask.description ?? '')
       setPriority(initialTask.priority)
-      setDueDate(initialTask.dueDate ?? '')
+      // Convert ISO datetime to YYYY-MM-DD format for date input
+      if (initialTask.dueDate) {
+        const date = new Date(initialTask.dueDate)
+        setDueDate(date.toISOString().split('T')[0])
+      } else {
+        setDueDate('')
+      }
       setStatus(initialTask.status)
     } else {
       // Reset form for create mode
@@ -88,12 +94,19 @@ const TaskModal = ({
       return
     }
 
+    // Convert dueDate to ISO datetime format or null
+    let formattedDueDate: string | null = null
+    if (dueDate && dueDate.trim() !== '') {
+      // HTML date input returns YYYY-MM-DD, convert to ISO datetime
+      formattedDueDate = new Date(dueDate).toISOString()
+    }
+
     const taskData = {
       ...(initialTask?.id && { id: initialTask.id }),
       title: title.trim(),
       description: description.trim(),
       priority,
-      dueDate,
+      dueDate: formattedDueDate,
       status,
     }
 
